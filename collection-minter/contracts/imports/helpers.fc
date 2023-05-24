@@ -1,0 +1,11 @@
+builder generate_init_state_with_data_no_library(cell code, cell data) impure method_id {
+    return begin_cell().store_uint(0, 1) ;; maybe (##5)
+            .store_uint(1, 1) ;; Maybe TickTock
+            .store_uint(1, 1) ;; bool Tick
+            .store_uint(0, 1) ;; bool Tock
+            .store_uint(1, 1) ;; code: Maybe Cell^
+            .store_ref(code)
+            .store_uint(1, 1) ;; data: Maybe Cell^
+            .store_ref(data)
+            .store_uint(0, 1); ;; library: Maybe ^Cell
+}

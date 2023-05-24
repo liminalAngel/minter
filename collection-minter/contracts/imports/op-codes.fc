@@ -1,0 +1,30 @@
+const op::transfer = 0x5fcc3d14;
+const op::excesses = 0xd53276db;
+const op::ownership_assigned = 0x05138d91;
+const op::excesses = 0xd53276db;
+const op::get_static_data = 0x2fcb26a2;
+const op::report_static_data = 0x8b771735;
+const op::get_royalty_params = 0x693d3950;
+const op::report_royalty_params = 0xa8cb00ad;
+
+;; NFTEditable
+const op::edit_content = 0x1a0b9d51;
+const op::transfer_editorship = 0x1c04412a;
+const op::editorship_assigned = 0x511a4463;
+
+;; NFTReveal
+const op::nft_reveal_user_request = 0x5fcc3d1a;
+const op::nft_reveal_nft_request = 0x5fcc3d1b;
+const op::nft_reveal_success_collection_response = 0x5fcc3d1c;
+const op::collection_add_reveal_batch = 0x5fcc3d1d;
+
+const op::mint_collection = "op::mint_collection"c;
+const op::mint_nft_item = "op::mint_nft_item"c;
+const op::batch_nft_mint = "op::batch_nft_mint"c;
+const op::change_collection_owner = "op::change_collection_owner"c;
+const op::edit_collection_content = "op::edit_collection_content"c;
+const op::update_mint_price = "op::update_mint_price"c;
+const op::change_owner = "op::change_owner"c;
+const op::update_code = "op::update_code"c;
+const op::withdraw_funds = "op::withdraw_funds"c;
+const op::top_up = "op::top_up"c;

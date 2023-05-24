@@ -1,0 +1,312 @@
+;; Storage
+;;
+;; slice owner_address
+;; int64 next_collection_index
+;; int mint_price
+;; cell collections
+
+#pragma version >=0.4.0;
+
+#include "imports/stdlib.fc";
+#include "imports/op-codes.fc";
+#include "imports/params.fc";
+#include "imports/messages.fc";
+#include "imports/helpers.fc";
+
+int min_tons_for_storage() asm "100000000 PUSHINT"; ;; 0.1 TON
+
+(slice, int, int, cell) load_data() inline {
+
+    slice ds = get_data().begin_parse();
+
+    return (
+        ds~load_msg_addr(),
+        ds~load_uint(64), 
+        ds~load_coins(),
+        ds~load_dict() 
+    );
+}
+
+() save_data(slice owner_address, int next_collection_index, int mint_price, cell collections) impure inline {
+
+    set_data(
+      begin_cell()
+        .store_slice(owner_address) 
+        .store_uint(next_collection_index, 64) 
+        .store_coins(mint_price)
+        .store_dict(collections) 
+      .end_cell()
+    );
+}
+
+slice calculate_collection_address(cell state_init) {
+  return begin_cell().store_uint(4, 3)
+                     .store_int(workchain, 8)
+                     .store_uint(cell_hash(state_init), 256)
+                     .end_cell()
+                     .begin_parse();
+}
+
+
+slice get_collection_addr_by_id(int collection_id) inline {
+
+  (_, _, _, cell collections) = load_data();
+
+  (slice address, int f) = udict_get?(collections, 256, collection_id);
+
+  throw_unless(666, f);
+
+  return address;
+
+}
+
+int get_dict_size(cell dict) inline {
+    int size = 0;
+    (int key, _, int f) = dict.udict_get_min?(64);
+    while (f) {
+        size += 1;
+        (key, _, f) = dict.udict_get_next?(64, key);
+    }
+    return size;
+}
+
+() mint_collection(cell collection_code, cell collection_data) impure {
+
+  (slice owner_address, int next_collection_index, int mint_price, cell collections) = load_data();
+
+  cell state_init = (generate_init_state_with_data_no_library(collection_code, collection_data)).end_cell();
+  
+  slice collection_address = calculate_collection_address(state_init);
+
+  messages::send_with_stateinit(500000000, collection_address, state_init, (begin_cell().end_cell()), 0);
+
+  cell new_collections_dict = collections.udict_set(256, next_collection_index, collection_address);
+  
+  next_collection_index += 1;
+
+  save_data(owner_address, next_collection_index, mint_price, new_collections_dict);
+
+}
+
+() mint_nft_item(int collection_id, int item_index, cell nft_content) impure {
+  
+  slice collection_address = get_collection_addr_by_id(collection_id);
+
+  slice in_msg_body = begin_cell()
+                    .store_uint(op::mint_nft_item, 32)
+                    .store_uint(cur_lt(), 64)
+                    .store_uint(item_index, 64)
+                    .store_coins(50000000)
+                    .store_ref(nft_content)
+                  .end_cell().begin_parse();
+
+  cell msg_body = begin_cell().store_slice(in_msg_body).end_cell();
+
+  messages::minter_send(0, collection_address, msg_body, 64);
+
+}
+
+() batch_nft_mint(int collection_id, cell deploy_list) impure {
+
+  slice collection_address = get_collection_addr_by_id(collection_id);
+
+  slice in_msg_body = begin_cell()
+                    .store_uint(op::batch_nft_mint, 32)
+                    .store_uint(cur_lt(), 64)
+                    .store_ref(deploy_list)
+                  .end_cell().begin_parse();
+
+  cell msg_body = begin_cell().store_slice(in_msg_body).end_cell();
+
+  messages::minter_send(0, collection_address, msg_body, 64);
+
+}
+
+() edit_collection_content(int collection_id, cell new_content, cell royalty_params) impure {
+
+  slice collection_address = get_collection_addr_by_id(collection_id);
+
+  slice in_msg_body = begin_cell()
+                    .store_uint(op::edit_collection_content, 32)
+                    .store_uint(cur_lt(), 64)
+                    .store_ref(new_content)
+                    .store_ref(royalty_params)
+                  .end_cell().begin_parse();
+
+  cell msg_body = begin_cell().store_slice(in_msg_body).end_cell();
+  
+  messages::minter_send(0, collection_address, msg_body, 64);  
+
+}
+
+() change_collection_owner(int collection_id, slice new_owner_address) impure {
+
+  slice collection_address = get_collection_addr_by_id(collection_id);
+
+  slice in_msg_body = begin_cell()
+                    .store_uint(op::change_collection_owner, 32)
+                    .store_uint(cur_lt(), 64)
+                    .store_slice(new_owner_address)
+                  .end_cell().begin_parse();
+
+  cell msg_body = begin_cell().store_slice(in_msg_body).end_cell();
+  
+  messages::minter_send(0, collection_address, msg_body, 64);
+
+}
+
+() collection_add_reveal_batch(int collection_id, cell reveal_batch) impure {
+    slice collection_address = get_collection_addr_by_id(collection_id);
+
+    slice in_msg_body = begin_cell()
+                    .store_uint(op::collection_add_reveal_batch, 32)
+                    .store_uint(cur_lt(), 64)
+                    .store_ref(reveal_batch)
+                  .end_cell().begin_parse();
+
+    cell msg_body = begin_cell().store_slice(in_msg_body).end_cell();
+  
+    messages::minter_send(0, collection_address, msg_body, 64);
+}
+
+() update_code(cell new_code) impure {
+
+  set_code(new_code);
+
+  cont old_code = get_c3();
+  set_c3(new_code.begin_parse().bless());
+
+  throw(0);
+  
+}
+
+() withdraw_funds(int my_balance, int withdraw_amount) impure {
+
+  throw_unless(407, my_balance + min_tons_for_storage() > withdraw_amount);
+
+  (slice owner_address, _, _, _) = load_data();
+  
+  messages::send_empty(withdraw_amount, owner_address, 0);
+
+}
+
+() recv_internal(int balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+
+    slice cs = in_msg_full.begin_parse();
+
+    int flags = cs~load_uint(4);
+    slice sender_address = cs~load_msg_addr();
+
+    if (flags & 1) { 
+        return (); 
+    } 
+
+    if (in_msg_body.slice_empty?()) { 
+        return (); 
+    }
+
+    int op = in_msg_body~load_uint(32);
+
+    if (op == op::mint_collection) {
+
+        mint_collection(in_msg_body~load_ref(), in_msg_body~load_ref());  
+      
+        return ();
+    }
+
+    (slice owner_address, int next_collection_index, int mint_price, cell collections) = load_data();
+
+    if (op == op::mint_nft_item) {
+
+        throw_unless(113, balance >= mint_price + min_tons_for_storage());
+
+        throw_unless(114, msg_value == mint_price);
+
+        mint_nft_item(in_msg_body~load_uint(64), in_msg_body~load_uint(64), in_msg_body~load_ref());
+
+        return ();
+    }
+
+    if (op == op::batch_nft_mint) {
+
+        cell deploy_list = in_msg_body~load_ref();
+
+        throw_unless(115, msg_value / mint_price >= get_dict_size(deploy_list));
+
+        batch_nft_mint(in_msg_body~load_uint(64), deploy_list);
+        
+        return ();
+    }
+
+    if (op == op::change_collection_owner) {
+
+        change_collection_owner(in_msg_body~load_uint(64), in_msg_body~load_msg_addr());
+
+        return ();
+    }
+
+    if (op == op::edit_collection_content) {
+
+        edit_collection_content(in_msg_body~load_uint(64), in_msg_body~load_ref(), in_msg_body~load_ref());
+
+        return ();
+    }
+
+    if (op == op::collection_add_reveal_batch) {
+
+        collection_add_reveal_batch(in_msg_body~load_uint(64), in_msg_body~load_ref());
+
+        return ();
+    }
+
+    throw_unless(404, equal_slices(owner_address, sender_address));
+
+    if (op == op::top_up) {  ;; top up minter balance
+
+        return ();
+    }
+
+    if (op == op::update_mint_price) {
+
+        save_data(owner_address, next_collection_index, in_msg_body~load_coins(), collections);
+
+        return ();
+    }
+
+    if (op == op::change_owner) {
+
+        slice new_owner_address = in_msg_body~load_msg_addr();
+        force_chain(new_owner_address);
+        save_data(new_owner_address, next_collection_index, mint_price, collections);
+
+        return ();
+    }
+
+    if (op == op::withdraw_funds) {
+
+        withdraw_funds(balance, cs~load_coins());
+
+        return ();
+    }
+
+    if (op == op::update_code) {
+
+        update_code(in_msg_body~load_ref());
+
+        return ();
+    }
+
+    throw(0xffffff);
+
+}
+
+(slice, int, int, cell) get_minter_data() method_id {
+    (slice owner_address, int next_collection_index, int mint_price, cell collections) = load_data();
+    return (
+        owner_address,
+        next_collection_index,
+        mint_price, 
+        collections
+    );
+}
+
