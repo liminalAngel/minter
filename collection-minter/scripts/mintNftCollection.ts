@@ -14,13 +14,13 @@ export async function run(provider: NetworkProvider, args: string[]) {
         ownerAddress: address, 
         nextItemIndex: 0, 
         collectionContent: "",
-        commonContent: 'tonstorage://9F9654887E6303B7EAFA4DE299B897D2F23475FA383FE42DD3A9973115930514/',
+        commonContent: 'tonstorage://0D51A77C4BE0E59ED44D149B5FE32332AE726FE09AE83E84E363FC50A21DFB56/',
         nftItemCode: await compile('NftItem'),
         royaltyParams: {
             royaltyFactor: 12,
             royaltyBase: 100,
             royaltyAddress: randomAddress()
-        }
+        },
     });
 
     await minter.sendMintCollectionMsg(provider.sender(), {

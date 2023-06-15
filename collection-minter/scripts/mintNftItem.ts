@@ -11,7 +11,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const minter = provider.open(CollectionMinter.createFromAddress(address));
 
     await minter.sendMintNftItemMsg(provider.sender(), {
-        collectionId: 1,
+        collectionId: 7,
         itemOwnerAddress: provider.sender().address as Address,
         itemEditorAddress: provider.sender().address as Address,
         itemContent: '',

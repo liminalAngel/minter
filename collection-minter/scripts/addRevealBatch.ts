@@ -15,16 +15,16 @@ export async function run(provider: NetworkProvider, args: string[]) {
             {
                 index: 1,
                 either: 0,
-                revealContent: '3'
+                revealContent: "my_nft.json"  // example reveal content
             },
             {
                 index: 2,
-                either: 1,
-                revealContent: '4'
+                either: 0,
+                revealContent: 'my_nft.json'
             },
         ],
         value: toNano('0.05'),
-        collectionId: 1,
+        collectionId: 7,
     });
 
     ui.write("Added reveal!");

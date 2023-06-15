@@ -1,7 +1,13 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from 'ton-core';
 import { Opcodes } from './utils/opcodes';
 
-export type NftItemConfig = {};
+export type NftItemConfig = {
+    owner: Address;
+    collection: Address;
+    index: number | bigint;
+    content: Cell;
+    editor: Address;
+};
 
 export function nftItemConfigToCell(config: NftItemConfig): Cell {
     return beginCell().endCell();

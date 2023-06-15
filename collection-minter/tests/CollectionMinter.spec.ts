@@ -28,7 +28,7 @@ describe('CollectionMinter', () => {
 
         const deployer = await blockchain.treasury('deployer');
 
-        const deployResult = await collectionMinter.sendDeploy(deployer.getSender(), toNano('0.05'));
+        const deployResult = await collectionMinter.sendDeploy(deployer.getSender(), toNano('5'));
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
@@ -61,7 +61,6 @@ describe('CollectionMinter', () => {
         const mintCollectionResult = await collectionMinter.sendMintCollectionMsg(owner.getSender(), {
             collectionCode: await compile('NftCollection'),
             collectionData: collectionDataCell,
-            value: toNano('1'),
         });
         
         expect(mintCollectionResult.transactions).toHaveTransaction({
@@ -79,7 +78,6 @@ describe('CollectionMinter', () => {
         const newOwnerAddress = randomAddress();
   
         const changeOwnerResult = await collectionMinter.sendChangeOwnerMsg(owner.getSender(), {
-          value: toNano('0.5'),
           newOwner: newOwnerAddress
         });
   
